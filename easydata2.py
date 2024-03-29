@@ -1,11 +1,14 @@
 import json
 from typing import Any, Union
+import blackbox as bb
 
 def create_database(f_name: str) -> None:
     file = f'{f_name}.json'
     
     with open(file, 'w') as f:
         json.dump({}, f)
+        
+    bb.add('easydata', 'create_database')
 
 def _read_data(f_name: str) -> dict[str, dict[str, Any]]:
     file = f'{f_name}.json'
@@ -25,6 +28,8 @@ def get_id_data(f_name: str, id: str) -> Union[dict[str, Any], None]:
     
     data = _read_data(f_name)
     
+    bb.add('easydata', f'get_id_data({id})')
+    
     return data.get(id, None)
 
 def get_item_data(f_name: str, id: str, item: str) -> Any:
@@ -32,6 +37,8 @@ def get_item_data(f_name: str, id: str, item: str) -> Any:
     data = _read_data(f_name)
 
     user_data = data.get(id, None)
+    
+    bb.add('easydata', f'get_item_data({id}, {item})')
     
     if not user_data:
         return
@@ -45,6 +52,8 @@ def give_id_data(f_name: str, id: str, value: dict[str, dict[str, Any]]) -> None
     data[id] = value
     
     _write_data(f_name, data)
+    
+    bb.add('easydata', f'give_id_data({id}, {value})')
     
     return value
     
@@ -64,6 +73,8 @@ def give_item_data(f_name: str, id: str, item: str, value: Any) -> None:
 
     _write_data(f_name, data)
     
+    bb.add('easydata', f'give_item_data({id}, {item}, {value})')
+    
     return value
 
 def give_all_data(f_name: str, item: str, value: Any) -> None:
@@ -72,6 +83,8 @@ def give_all_data(f_name: str, item: str, value: Any) -> None:
     
     for user in data:
         give_item_data(f_name, user, item, value)
+        
+    bb.add('easydata', f'get_data_id({id}, {item}, {value})')
         
     return value
         
@@ -83,6 +96,8 @@ def delete_id_data(f_name: str, id: str) -> None:
 
     del data[id]
     _write_data(f_name, data)
+    
+    bb.add('easydata', f'delete_id_data({id})')
     
     return id
 

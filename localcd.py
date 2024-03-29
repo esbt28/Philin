@@ -2,6 +2,7 @@ import easydata2 as ed
 import datetime as dt
 from pathlib import Path
 import time
+import blackbox as bb
 
 DB_NAME = 'cd'
 db_path = Path(f'{DB_NAME}.json')
@@ -29,4 +30,5 @@ def cooldown_set(user: str, arg: str):
     else:
         ed.give_id_data(DB_NAME, user, {})
         ed.give_item_data(DB_NAME, user, arg, str(dt.datetime.now()))
-        
+    
+    bb.add('localcd', 'cooldown_set')
