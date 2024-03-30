@@ -4,11 +4,15 @@ import random
 import easydata2 as ed
 from pathlib import Path
 from localcd import cooldown_check, cooldown_set
+import blackbox as bb
 
 DB_NAME = 'philin_data'
 db_path = Path(f'{DB_NAME}.json')
 if not db_path.exists():
     print('Файл базы данных не обнаружен!')
+    
+    bb.add('system', 'data base file was created')
+    
     ed.create_database(DB_NAME)
 
 CONFIG_NAME = 'config'
@@ -16,6 +20,9 @@ db_path = Path(f'{CONFIG_NAME}.json')
 if not db_path.exists():
     print('Файл конфига не обнаружен!')
     ed.create_database(CONFIG_NAME)
+    
+    bb.add('system', 'config file was created')
+    
     ed.give_id_data(CONFIG_NAME, 'config', {'prefix': '>', 'balance': 0, 'inc_balance': 500, 'currency': '$', 'bank_balance': 0, 'bank_limit': 200, 'inc_ad': 1, 'inc_building': 1, 'skill_hack': 1, 'skill_protect': 1, 'business_price': 1000, 'ad_price': 350, 'building_price': 1000, 'inc_stocks': 0, 'inc_workers': 0, 'inc_max_stocks': 20, 'inc_stock_percent': 2, 'inc_max_workers': 100})
 
 config = ed.get_id_data(CONFIG_NAME, 'config')
@@ -27,6 +34,7 @@ client = commands.Bot(command_prefix=config['prefix'])
 @client.event
 async def on_ready():
     print('Выполнен вход в {0.user}'.format(client))
+    bb.add('system', 'bot is online')
     await client.change_presence(status = discord.Status.idle, activity= discord.Activity(name=f'>help', type= discord.ActivityType.playing))
 
 @client.command()
@@ -998,6 +1006,8 @@ async def on_command_error(message, error):
 
         user = await client.fetch_user(user_id=986313671661727744)
         await user.send(error)
+        
+        bb.add('system', error)
 
 
     elif isinstance(error, commands.errors.CommandInvokeError):    
@@ -1009,6 +1019,8 @@ async def on_command_error(message, error):
 
         user = await client.fetch_user(user_id=986313671661727744)
         await user.send(error)
+        
+        bb.add('system', error)
 
     elif isinstance(error, commands.CommandNotFound):
         embed1 = discord.Embed(
@@ -1019,6 +1031,8 @@ async def on_command_error(message, error):
 
         user = await client.fetch_user(user_id=986313671661727744)
         await user.send(error)
+        
+        bb.add('system', error)
 
 
     else:
@@ -1030,6 +1044,8 @@ async def on_command_error(message, error):
 
         user = await client.fetch_user(user_id=986313671661727744)
         await user.send(error)
+        
+        bb.add('system', error)
 
 @client.event
 async def on_message(message):
@@ -1038,6 +1054,13 @@ async def on_message(message):
 
     global messages
     messages += 1
+    
+    cmd_list = ['help', 'news', 'shop', 'bank_up', 'inventory', 'inc_stocks', 'inc_store', 'inc_set', 'inc_withdraw', 'set_currency', 'badge', 'inc_info', 'inc_up', 'inc_create', 'bal', 'bonus', 'pay', 'deposit', 'withdraw', 'hack', 'set_work', 'skill_up']
+    
+    if message.content.startswith('>'):
+        if message.content.replace('>', '').split()[0] in cmd_list:
+            bb.add(user_id, message.content.replace('>', ''))
+        
     
     if messages % 10 == 0:
         for i in ed.ids(DB_NAME):
@@ -1052,16 +1075,22 @@ async def on_message(message):
             inc_ad = ed.get_item_data(DB_NAME, work, 'ad')
             balance = ed.get_item_data(DB_NAME, user_id, 'balance')
             
-            sum = balance + inc_ad
-            ed.give_item_data(DB_NAME, user_id, 'balance', sum)
+            try:
+                sum = balance + inc_ad
+                ed.give_item_data(DB_NAME, user_id, 'balance', sum)
+            except:
+                bb.add('system', f'salary payment error (ad: {inc_ad}, balance: {balance})')
             
         elif business != 'Отсутствует':
-            inc_ad = ed.get_item_data(DB_NAME, business, 'ad') or 1
-            inc_building = ed.get_item_data(DB_NAME, business, 'building') or 1
+            inc_ad = ed.get_item_data(DB_NAME, business, 'ad')
+            inc_building = ed.get_item_data(DB_NAME, business, 'building')
             balance = ed.get_item_data(DB_NAME, business, 'balance')
             
-            sum = balance + inc_ad * inc_building ** 2
-            ed.give_item_data(DB_NAME, business, 'balance', sum)
+            try:
+                sum = int(balance) + int(inc_ad) * int(inc_building) ** 2
+                ed.give_item_data(DB_NAME, business, 'balance', sum)
+            except:
+                bb.add('system', f'salary payment error (ad: {inc_ad}, building:{inc_building}, balance: {balance})')
             
             
 client.run("OTk4MjU2NTAyOTQwOTA1NTQy.GMbFaw.OXPEQs0-zFZ6ahWXu3nlrW3WX-Xi1yzcRDLXkg", bot=True) #запускаем бота

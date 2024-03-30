@@ -31,4 +31,4 @@ def cooldown_set(user: str, arg: str):
         ed.give_id_data(DB_NAME, user, {})
         ed.give_item_data(DB_NAME, user, arg, str(dt.datetime.now()))
     
-    bb.add('localcd', 'cooldown_set')
+    bb.add('system', 'cooldown_set')
