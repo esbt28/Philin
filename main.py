@@ -9,8 +9,6 @@ import blackbox as bb
 DB_NAME = 'philin_data'
 db_path = Path(f'{DB_NAME}.json')
 if not db_path.exists():
-    print('Файл базы данных не обнаружен!')
-    
     bb.add('system', 'data base file was created')
     
     ed.create_database(DB_NAME)
@@ -18,14 +16,18 @@ if not db_path.exists():
 CONFIG_NAME = 'config'
 db_path = Path(f'{CONFIG_NAME}.json')
 if not db_path.exists():
-    print('Файл конфига не обнаружен!')
     ed.create_database(CONFIG_NAME)
     
     bb.add('system', 'config file was created')
     
-    ed.give_id_data(CONFIG_NAME, 'config', {'prefix': '>', 'balance': 0, 'inc_balance': 500, 'currency': '$', 'bank_balance': 0, 'bank_limit': 200, 'inc_ad': 1, 'inc_building': 1, 'skill_hack': 1, 'skill_protect': 1, 'business_price': 1000, 'ad_price': 350, 'building_price': 1000, 'inc_stocks': 0, 'inc_workers': 0, 'inc_max_stocks': 20, 'inc_stock_percent': 2, 'inc_max_workers': 100})
+    ed.give_id_data(CONFIG_NAME, 'config', {'prefix': '>', 'balance': 0, 'inc_balance': 500, 'currency': '$', 'bank_balance': 0, 'bank_limit': 200, 'inc_ad': 1, 'inc_building': 1, 'skill_hack': 1, 'skill_protect': 1, 'business_price': 1000, 'ad_price': 350, 'building_price': 1000, 'inc_stocks': 0, 'inc_workers': 0, 'inc_max_stocks': 20, 'inc_stock_percent': 2, 'inc_max_workers': 100, 'max_bonus': 400, 'bot_id': '998256502940905542', 'world_money': 10000000000})
 
 config = ed.get_id_data(CONFIG_NAME, 'config')
+
+client_id = config['bot_id']
+
+if ed.is_item_exist(DB_NAME, client_id, 'bank_balance') == False:
+    ed.give_item_data(DB_NAME, client_id, 'bank_balance', config['world_money'])
 
 messages = 0
 
@@ -97,16 +99,27 @@ async def bonus(message):
         currency = ed.give_item_data(DB_NAME, user_id, 'currency', config['currency'])
     currency = ed.get_item_data(DB_NAME, user_id, 'currency')
 
-    payment = random.randint(1, 400)
-    sub = int(balance) + payment
+    payment = random.randint(1, config['max_bonus'])
     
-    ed.give_item_data(DB_NAME, user_id, 'balance', sub)
+    client_bank_balance = int(ed.get_item_data(DB_NAME, client_id, 'bank_balance'))
+    sub_client = client_bank_balance - int(payment)
+    
+    if sub_client < 0:
+        payment = client_bank_balance
+        sub_client = 0
+    
+    
+    sum = int(balance) + payment
+    
+    ed.give_item_data(DB_NAME, user_id, 'balance', sum)
+    
+    ed.give_item_data(DB_NAME, client_id, 'bank_balance', sub_client)
     
     cooldown_set(user_id, 'bonus')
 
     embed1 = discord.Embed(
     title = 'Ежедневная выплата',
-    description = f'📬 Оплата: {currency}**{payment}**\n💸 Итоговый баланс: {currency}**{sub}**',
+    description = f'📬 Оплата: {currency}**{payment}**\n💸 Итоговый баланс: {currency}**{sum}**',
     color = 0xffff00)
     await message.channel.send(embed = embed1)
 
@@ -116,7 +129,7 @@ async def pay(message, *, content):
 
     content_split = content.split()
     another_id = content_split[0].replace('<', '').replace('@', '').replace('>', '')
-    count = content_split[1]
+    count = int(content_split[1])
 
     if not ed.is_item_exist(DB_NAME, user_id, 'balance'):
         balance = ed.give_item_data(DB_NAME, user_id, 'balance', config['balance'])
@@ -131,14 +144,20 @@ async def pay(message, *, content):
     another_balance = ed.get_item_data(DB_NAME, another_id, 'balance')
 
     count = str(int(count) / 100 * 95).split('.')[0]
+    
+    comission = str(int(count) / 100 * 5).split('.')[0]
+    
+    client_bank_balance = int(ed.get_item_data(DB_NAME, client_id, 'bank_balance'))
+    sum_client = client_bank_balance + int(comission)
 
     sub = int(balance) - int(count)
-    sum = int(another_balance) + int(count)
-    sum = int(str(sum).split('.')[0])
+    sum = int(str(int(another_balance) + int(count)).split('.')[0])
 
     if sub and sum and int(balance) >= int(count) and int(count) >= 0:
         ed.give_item_data(DB_NAME, user_id, 'balance', sub)
         ed.give_item_data(DB_NAME, another_id, 'balance', sum)
+        
+        ed.give_item_data(DB_NAME, client_id, 'bank_balance', sum_client)
         text = f'<a:yes:998468643627212860> **Успешная транзакция!**\n📤 Отправитель: <@{user_id}>\n📥 Получатель: <@{another_id}>\n💸 Сумма: {currency}**{count}**\n📄 Комиссия: **5**%'
     elif int(balance) < int(count):
         text = f'<a:no:998468646533869658> Нехватка средств!\nУ вас на балансе: {currency}*{balance}*'
@@ -175,15 +194,21 @@ async def deposit(message, *, content):
         content = balance
         
     payment = str(int(content) / 100 * 90).split('.')[0]
+    
+    comission = str(int(content) / 100 * 10).split('.')[0]
+    
+    client_bank_balance = int(ed.get_item_data(DB_NAME, client_id, 'bank_balance'))
+    sum_client = client_bank_balance + int(comission)
 
     sub = int(balance) - int(content)
-    sum = int(bank_balance) + int(payment)
-    sum = int(str(sum).split('.')[0])
+    sum = int(str(int(bank_balance) + int(payment)).split('.')[0])
 
 
     if int(balance) >= int(content) and int(bank_balance) + int(content) <= int(bank_limit) and int(content) > 0:
         ed.give_item_data(DB_NAME, user_id, 'balance', sub)
         ed.give_item_data(DB_NAME, user_id, 'bank_balance', sum)
+        
+        ed.give_item_data(DB_NAME, client_id, 'bank_balance', sum_client)
         text = f'<a:yes:998468643627212860> **Успешное пополнение!**\n📤 Отправитель: <@{user_id}>\n📥 Получатель: **Philin Bank**\n💸 Сумма: {currency}**{payment}**\n📄 Комиссия: **10**%'
     else:
         text = f'<a:no:998468646533869658> Ошибка взаимодействия\n**Возможные причины:**\n- Не хватка средств (Доступно: {currency}**{balance}**)\n- Данная сумма превысит лимит ({currency}**{bank_limit}**)\n- Данное число не доступно'
@@ -263,6 +288,8 @@ async def hack(message, *, content):
         skill_hack = ed.give_item_data(DB_NAME, user_id, 'skill_hack', config['skill_hack'])
     skill_hack = ed.get_item_data(DB_NAME, user_id, 'skill_hack')
 
+    client_bank_balance = int(ed.get_item_data(DB_NAME, client_id, 'bank_balance'))
+
     chance = random.randint(1, 100)
 
     if int(skill_protect) >= int(skill_hack):
@@ -285,6 +312,8 @@ async def hack(message, *, content):
     else:
         count = int(balance) // 2
         sub = int(balance) - count
+        sum_client = client_bank_balance + int(count)
+        ed.give_item_data(DB_NAME, client_id, 'bank_balance', sum_client)
         ed.give_item_data(DB_NAME, user_id, 'balance', sub)
         text = f'<a:no:998468646533869658> Ограбление не удалось!\n⚖️ Штраф: {currency}**{count}**\n📄 Шанс: **{procent}**%'
 
@@ -365,12 +394,17 @@ async def skill_up(message, *, content):
     skill_protect = ed.get_item_data(DB_NAME, user_id, 'skill_protect')
     text = '<:error:1001754203565326346> Проверьте написание команды!'
 
+    client_bank_balance = int(ed.get_item_data(DB_NAME, client_id, 'bank_balance'))
+
     if content == 'hack':
         hack_price = int(skill_hack) * 50
         if int(balance) >= hack_price:
 
             skill_hack = int(skill_hack) + 1
             sub = int(balance) - hack_price
+            sum_client = client_bank_balance + int(hack_price)
+            
+            ed.give_item_data(DB_NAME, client_id, 'bank_balance', sum_client)
 
             ed.give_item_data(DB_NAME, user_id, 'balance', sub)
             
@@ -387,6 +421,9 @@ async def skill_up(message, *, content):
 
             skill_protect = int(skill_protect) + 1
             sub = int(balance) - protect_price
+            sum_client = client_bank_balance + int(protect_price)
+            
+            ed.give_item_data(DB_NAME, client_id, 'bank_balance', sum_client)
 
             ed.give_item_data(DB_NAME, user_id, 'balance', sub)
             
@@ -420,10 +457,14 @@ async def inc_create(message, *, content):
         currency = ed.give_item_data(DB_NAME, user_id, 'currency', config['currency'])
     currency = ed.get_item_data(DB_NAME, user_id, 'currency')
     
+    client_bank_balance = int(ed.get_item_data(DB_NAME, client_id, 'bank_balance'))
+    
     business_price = int(config['business_price'])
 
     if int(balance) >= business_price and not ed.is_id_exist(DB_NAME, content) and content != None and business == 'Отсутствует':
         sub = int(balance) - business_price
+        
+        sum_client = client_bank_balance + business_price
 
         if content != 'Отсутствует':
             inc_name = ed.give_item_data(DB_NAME, user_id, 'business', content)
@@ -440,6 +481,7 @@ async def inc_create(message, *, content):
 
         stock_price = ed.give_item_data(DB_NAME, content, 'stock_price', int(str(int(inc_balance) / 100 * 2).split('.')[0]))
 
+        ed.give_item_data(DB_NAME, client_id, 'bank_balance', sum_client)
         ed.give_item_data(DB_NAME, user_id, 'balance', sub)
         text = f'<a:yes:998468643627212860> **Успешно создан бизнес**: **{content} Inc.**\n💸 С вашего баланса списано {currency}**{business_price}**'
 
@@ -469,6 +511,8 @@ async def inc_up(message, *, content):
         currency = ed.give_item_data(DB_NAME, user_id, 'currency', config['currency'])
     currency = ed.get_item_data(DB_NAME, user_id, 'currency')
     
+    client_bank_balance = int(ed.get_item_data(DB_NAME, client_id, 'bank_balance'))
+    
     text = f'<a:no:998468646533869658> Ошибка взаимодействия\nВозможные причины:\n- Непредусмотренный параметр\n- Отсутствие бизнеса'
 
     if content == 'ad' and business != 'Отсутствует':
@@ -476,8 +520,10 @@ async def inc_up(message, *, content):
         if int(balance) >= ad_price:
             
             sub = int(balance) - ad_price
+            sum_client = client_bank_balance + ad_price
             
             ed.give_item_data(DB_NAME, user_id, 'balance', sub)
+            ed.give_item_data(DB_NAME, client_id, 'bank_balance', sum_client)
             ed.give_item_data(DB_NAME, business, 'ad', int(ed.get_item_data(DB_NAME, business, 'ad')) + 1)
                 
             text = f'📈 Вы успешно повысили уровень распространенности своей компании за {currency}**{ad_price}**'
@@ -490,9 +536,10 @@ async def inc_up(message, *, content):
         if int(balance) >= building_price:
 
             sub = int(balance) - building_price
+            sum_client = client_bank_balance + building_price
             
             ed.give_item_data(DB_NAME, user_id, 'balance', sub)
-
+            ed.give_item_data(DB_NAME, client_id, 'bank_balance', sum_client)
             ed.give_item_data(DB_NAME, business, 'building', int(ed.get_item_data(DB_NAME, business, 'building')) + 1)
                 
             text = f'📈 Вы успешно повысили уровень распространенности своей компании за {currency}**{building_price}**'
@@ -877,10 +924,14 @@ async def bank_up(message):
         bank_limit = ed.give_item_data(DB_NAME, user_id, 'bank_limit', config['bank_limit'])
     bank_limit = ed.get_item_data(DB_NAME, user_id, 'bank_limit')
     
+    client_bank_balance = int(ed.get_item_data(DB_NAME, client_id, 'bank_balance'))
+    
     if int(balance) >= int(bank_limit) * 2:
 
         sub = int(balance) - int(bank_limit) * 2
+        sum_client = client_bank_balance + int(bank_limit) * 2
         
+        ed.give_item_data(DB_NAME, client_id, 'bank_balance', sum_client)
         ed.give_item_data(DB_NAME, user_id, 'balance', sub)
         ed.give_item_data(DB_NAME, user_id, 'bank_limit', int(bank_limit) * 2)
         text = f'📈 Вы успешно повысили свой лимит в банке в 2 раза за {currency}**{int(bank_limit) * 2}**'
@@ -1060,15 +1111,16 @@ async def on_message(message):
     if message.content.startswith('>'):
         if message.content.replace('>', '').split()[0] in cmd_list:
             bb.add(user_id, message.content.replace('>', ''))
+            return
         
     
-    if messages % 10 == 0:
+    elif messages % 10 == 0:
         for i in ed.ids(DB_NAME):
             if ed.is_item_exist(DB_NAME, i, 'grafic'):
                 stock_price = int(ed.get_item_data(DB_NAME, i, 'balance')) * int(ed.get_item_data(DB_NAME, i, 'stock_percent')) // 100
                 ed.give_item_data(DB_NAME, i, 'stock_price', stock_price)
     
-    if messages % 4 == 0:
+    elif messages % 4 == 0:
         work = ed.get_item_data(DB_NAME, user_id, 'work')
         business = ed.get_item_data(DB_NAME, user_id, 'business')
         if work != 'Отсутствует' and business == 'Отсутствует':
@@ -1079,7 +1131,7 @@ async def on_message(message):
                 sum = balance + inc_ad
                 ed.give_item_data(DB_NAME, user_id, 'balance', sum)
             except:
-                bb.add('system', f'salary payment error (ad: {inc_ad}, balance: {balance})')
+                bb.add('system', f'salary payment error')
             
         elif business != 'Отсутствует':
             inc_ad = ed.get_item_data(DB_NAME, business, 'ad')
@@ -1090,7 +1142,6 @@ async def on_message(message):
                 sum = int(balance) + int(inc_ad) * int(inc_building) ** 2
                 ed.give_item_data(DB_NAME, business, 'balance', sum)
             except:
-                bb.add('system', f'salary payment error (ad: {inc_ad}, building:{inc_building}, balance: {balance})')
-            
+                bb.add('system', f'business salary payment error')
             
 client.run("OTk4MjU2NTAyOTQwOTA1NTQy.GMbFaw.OXPEQs0-zFZ6ahWXu3nlrW3WX-Xi1yzcRDLXkg", bot=True) #запускаем бота
