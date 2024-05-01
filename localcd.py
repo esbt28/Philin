@@ -8,7 +8,7 @@ DB_NAME = 'cd'
 db_path = Path(f'{DB_NAME}.json')
 if not db_path.exists():
     ed.create_database(DB_NAME)
-    print('Файл кулдауна не обнаружен!')
+    print('cd file was created')
 
 def cooldown_check(user: str, arg: str, cd: int):
     if ed.is_item_exist(DB_NAME, user, arg):

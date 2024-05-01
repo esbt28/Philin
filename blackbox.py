@@ -7,9 +7,9 @@ DB_NAME = 'bb'
 db_path = Path(f'{DB_NAME}.txt')
 if not db_path.exists():
     
-    print('Файл ящика не обнаружен!')
     with open(DB_NAME + '.txt', 'w') as f:
         f.write('')
+        print('bb file was created')
     
 def add(user: str, arg: str):
     now = dt.datetime.now()

@@ -20,7 +20,7 @@ if not db_path.exists():
     
     bb.add('system', 'config file was created')
     
-    ed.give_id_data(CONFIG_NAME, 'config', {'prefix': '>', 'balance': 0, 'inc_balance': 500, 'currency': '$', 'bank_balance': 0, 'bank_limit': 200, 'inc_ad': 1, 'inc_building': 1, 'skill_hack': 1, 'skill_protect': 1, 'business_price': 1000, 'ad_price': 350, 'building_price': 1000, 'inc_stocks': 0, 'inc_workers': 0, 'inc_max_stocks': 20, 'inc_stock_percent': 2, 'inc_max_workers': 100, 'max_bonus': 400, 'bot_id': '998256502940905542', 'world_money': 10000000000})
+    ed.give_id_data(CONFIG_NAME, 'config', {'prefix': '>', 'balance': 0, 'inc_balance': 500, 'currency': '$', 'bank_balance': 0, 'bank_limit': 200, 'inc_ad': 1, 'inc_building': 1, 'skill_hack': 1, 'skill_protect': 1, 'business_price': 1000, 'ad_price': 350, 'building_price': 1000, 'inc_stocks': 0, 'inc_workers': 0, 'inc_max_stocks': 20, 'inc_stock_percent': 2, 'inc_max_workers': 100, 'max_bonus': 400, 'bot_id': '998256502940905542', 'world_money': 10000000000000})
 
 config = ed.get_id_data(CONFIG_NAME, 'config')
 
@@ -35,8 +35,7 @@ client = commands.Bot(command_prefix=config['prefix'])
 
 @client.event
 async def on_ready():
-    print('Выполнен вход в {0.user}'.format(client))
-    bb.add('system', 'bot is online')
+    bb.add('system', '{0.user} is online'.format(client))
     await client.change_presence(status = discord.Status.idle, activity= discord.Activity(name=f'>help', type= discord.ActivityType.playing))
 
 @client.command()
@@ -1027,9 +1026,9 @@ async def shop(message, *, content = 'None'): #обновить
 
 @client.command()
 async def news(message):
-    version = '2.0.0'
-    when = '??.??.2024'
-    text = f'**Версия**: *v.{version}*\n**Дата обновления**: {when}\n**Изменения:**\n- ???'
+    version = '2.0.1'
+    when = '01.05.2024'
+    text = f'**Версия**: *v.{version}*\n**Дата обновления**: {when}\n**Изменения:**\n- Теперь в мире деньги не бесконечны. Они берутся из фонда, который конечен.\n- Сделана команда `>inc_set` для настройки показателей бизнеса, например кол-во акций и их доля.\n- Здания бизнеса были сбалансированны'
     embed1 = discord.Embed(
     title = 'Обновления',
     description = text,
@@ -1126,9 +1125,13 @@ async def on_message(message):
         if work != 'Отсутствует' and business == 'Отсутствует':
             inc_ad = ed.get_item_data(DB_NAME, work, 'ad')
             balance = ed.get_item_data(DB_NAME, user_id, 'balance')
+            client_bank_balance = int(ed.get_item_data(DB_NAME, client_id, 'bank_balance'))
             
             try:
                 sum = balance + inc_ad
+                sub_client = client_bank_balance - inc_ad
+        
+                ed.give_item_data(DB_NAME, client_id, 'bank_balance', sub_client)
                 ed.give_item_data(DB_NAME, user_id, 'balance', sum)
             except:
                 bb.add('system', f'salary payment error')
@@ -1137,9 +1140,14 @@ async def on_message(message):
             inc_ad = ed.get_item_data(DB_NAME, business, 'ad')
             inc_building = ed.get_item_data(DB_NAME, business, 'building')
             balance = ed.get_item_data(DB_NAME, business, 'balance')
+            client_bank_balance = int(ed.get_item_data(DB_NAME, client_id, 'bank_balance'))
             
             try:
                 sum = int(balance) + int(inc_ad) * int(inc_building) ** 2
+                
+                sub_client = client_bank_balance - int(inc_ad) * int(inc_building) ** 2
+        
+                ed.give_item_data(DB_NAME, client_id, 'bank_balance', sub_client)
                 ed.give_item_data(DB_NAME, business, 'balance', sum)
             except:
                 bb.add('system', f'business salary payment error')
