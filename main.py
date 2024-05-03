@@ -20,7 +20,7 @@ if not db_path.exists():
     
     bb.add('system', 'config file was created')
     
-    ed.give_id_data(CONFIG_NAME, 'config', {'prefix': '>', 'balance': 0, 'inc_balance': 500, 'currency': '$', 'bank_balance': 0, 'bank_limit': 200, 'inc_ad': 1, 'inc_building': 1, 'skill_hack': 1, 'skill_protect': 1, 'business_price': 1000, 'ad_price': 350, 'building_price': 1000, 'inc_stocks': 0, 'inc_workers': 0, 'inc_max_stocks': 20, 'inc_stock_percent': 2, 'inc_max_workers': 100, 'max_bonus': 400, 'bot_id': '998256502940905542', 'world_money': 10000000000000})
+    ed.give_id_data(CONFIG_NAME, 'config', {'prefix': '>', 'balance': 0, 'inc_balance': 500, 'currency': '$', 'bank_balance': 0, 'bank_limit': 200, 'inc_ad': 1, 'inc_building': 1, 'skill_hack': 1, 'skill_protect': 1, 'business_price': 1000, 'ad_price': 350, 'building_price': 1000, 'inc_stocks': 0, 'inc_workers': 0, 'inc_max_stocks': 20, 'inc_stock_percent': 2, 'inc_max_workers': 25, 'max_bonus': 400, 'bot_id': '998256502940905542', 'world_money': 10000000000000})
 
 config = ed.get_id_data(CONFIG_NAME, 'config')
 
@@ -477,6 +477,7 @@ async def inc_create(message, *, content):
         inc_max_stocks = ed.give_item_data(DB_NAME, content, 'max_stocks', config['inc_max_stocks'])
         inc_stock_percent = ed.give_item_data(DB_NAME, content, 'stock_percent', config['inc_stock_percent'])
         inc_max_workers = ed.give_item_data(DB_NAME, content, 'max_workers', config['inc_max_workers'])
+        inc_salasy = ed.give_item_data(DB_NAME, content, 'salary', 200)
 
         stock_price = ed.give_item_data(DB_NAME, content, 'stock_price', int(str(int(inc_balance) / 100 * 2).split('.')[0]))
 
@@ -576,10 +577,11 @@ async def inc_info(message):
         inc_max_stocks = ed.get_item_data(DB_NAME, business, 'max_stocks')
         inc_stock_percent = ed.get_item_data(DB_NAME, business, 'stock_percent')
         inc_max_workers = ed.get_item_data(DB_NAME, business, 'max_workers')
+        inc_salary = ed.get_item_data(DB_NAME, business, 'salary')
 
         stock_price = int(str(int(inc_balance) / 100 * int(inc_stock_percent)).split('.')[0])
 
-        text = f'📌Название: **{business}**\n📨Уровень рекламы: **{inc_ad}**\n🏢Количество зданий: **{inc_building}**\n💸Бюджет: {currency}**{inc_balance}**\n📊Цена акции: {currency}**{stock_price}**{inc_grafic}\n🧷Процент акции: **{inc_stock_percent}%**\n📈Продано акций: **{inc_stocks}/{inc_max_stocks}**\n👤Сотрудников: {inc_workers}/{inc_max_workers}'
+        text = f'📌Название: **{business}**\n📨Уровень рекламы: **{inc_ad}**\n🏢Количество зданий: **{inc_building}**\n💸Бюджет: {currency}**{inc_balance}**\n📊Цена акции: {currency}**{stock_price}**{inc_grafic}\n🧷Процент акции: **{inc_stock_percent}%**\n📈Продано акций: **{inc_stocks}/{inc_max_stocks}**\n💳Зарплата: {currency}**{inc_salary}**\n👤Сотрудников: {inc_workers}/{inc_max_workers}'
     
     embed1 = discord.Embed(
     title = 'Предприятие',
@@ -683,15 +685,19 @@ async def inc_withdraw(message, *, content):
 @client.command()
 async def inc_set(message, *, content):
     user_id = str(message.author.id)
+    
+    if not ed.is_item_exist(DB_NAME, user_id, 'currency'):
+        currency = ed.give_item_data(DB_NAME, user_id, 'currency', config['currency'])
+    currency = ed.get_item_data(DB_NAME, user_id, 'currency')
 
     content_split = content.split()
     
     business = ed.get_item_data(DB_NAME, user_id, 'business')
     
-    text = f'<a:no:998468646533869658> Ошибка взаимодействия\nВозможные причины:\n- Непредусмотренный параметр\n- Отсутствие бизнеса\n- Превышение аргумента'
+    text = f'<a:no:998468646533869658> Ошибка взаимодействия\nВозможные причины:\n- Непредусмотренный параметр\n- Отсутствие бизнеса\n- Превышение аргумента\nДополнительная информация:\n- Каждое здание бизнеса дает дополнительные рабочие места\n- Минимальная зарплата сотрудников: {currency}**200**'
     
     if content_split[0] == 'max_workers' and content_split[1].isdigit() and business != 'Отсутствует':
-        if int(content_split[1]) >= 0:
+        if int(content_split[1]) >= 0 and int(content_split[1]) <= config['inc_max_workers'] * int(ed.get_item_data(DB_NAME, business, 'building')):
             ed.give_item_data(DB_NAME, business, 'max_workers', int(content_split[1]))
             text = f'⚙️ Вы изменили число допустимых сотрудников на {content_split[1]}'
         
@@ -704,6 +710,12 @@ async def inc_set(message, *, content):
         if int(content_split[1]) * int(ed.get_item_data(DB_NAME, business, 'stock_percent')) <= 100:
             ed.give_item_data(DB_NAME, business, 'max_stocks', int(content_split[1]))
             text = f'⚙️ Вы изменили число доступных акций на {content_split[1]}'
+            
+    elif content_split[0] == 'salary' and content_split[1].isdigit() and business != 'Отсутствует' and int(content_split[1]) >= 0:
+        if int(content_split[1]) >= 200:
+            inc_ad = int(ed.get_item_data(DB_NAME, business, 'ad'))
+            ed.give_item_data(DB_NAME, business, 'salary', int(content_split[1]))
+            text = f'⚙️ Вы изменили зарплату сотрудников на {currency}**{content_split[1]}**\n- Рекомендуемая зарплата: {currency}**{200 * inc_ad}**'
             
     embed1 = discord.Embed(
     title = 'Настройка',
@@ -1026,9 +1038,9 @@ async def shop(message, *, content = 'None'): #обновить
 
 @client.command()
 async def news(message):
-    version = '2.0.1'
-    when = '01.05.2024'
-    text = f'**Версия**: *v.{version}*\n**Дата обновления**: {when}\n**Изменения:**\n- Теперь в мире деньги не бесконечны. Они берутся из фонда, который конечен.\n- Сделана команда `>inc_set` для настройки показателей бизнеса, например кол-во акций и их доля.\n- Здания бизнеса были сбалансированны'
+    version = '2.0.2'
+    when = '03.05.2024'
+    text = f'**Версия**: *v.{version}*\n**Дата обновления**: {when}\n**Изменения:**\n- Теперь в мире деньги не бесконечны. Они берутся из фонда, который конечен.\n- Сделана команда `>inc_set` для настройки показателей бизнеса, например кол-во акций и их доля.\n- Здания бизнеса были сбалансированны\n- Теперь количесво работников зависит от количества зданий\n- Добавлена возможность регуляции зарплат сотрудников'
     embed1 = discord.Embed(
     title = 'Обновления',
     description = text,
@@ -1119,19 +1131,23 @@ async def on_message(message):
                 stock_price = int(ed.get_item_data(DB_NAME, i, 'balance')) * int(ed.get_item_data(DB_NAME, i, 'stock_percent')) // 100
                 ed.give_item_data(DB_NAME, i, 'stock_price', stock_price)
     
-    elif messages % 4 == 0:
+    elif messages % 5 == 0:
         work = ed.get_item_data(DB_NAME, user_id, 'work')
         business = ed.get_item_data(DB_NAME, user_id, 'business')
         if work != 'Отсутствует' and business == 'Отсутствует':
+            inc_balance = ed.get_item_data(DB_NAME, work, 'balance')
             inc_ad = ed.get_item_data(DB_NAME, work, 'ad')
+            inc_salary = ed.get_item_data(DB_NAME, work, 'salary') // 200
             balance = ed.get_item_data(DB_NAME, user_id, 'balance')
             client_bank_balance = int(ed.get_item_data(DB_NAME, client_id, 'bank_balance'))
             
             try:
-                sum = balance + inc_ad
+                sum = balance + inc_salary
+                sum_business = inc_balance + inc_ad - inc_salary
                 sub_client = client_bank_balance - inc_ad
         
                 ed.give_item_data(DB_NAME, client_id, 'bank_balance', sub_client)
+                ed.give_item_data(DB_NAME, work, 'balance', sum_business)
                 ed.give_item_data(DB_NAME, user_id, 'balance', sum)
             except:
                 bb.add('system', f'salary payment error')
