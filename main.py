@@ -20,7 +20,7 @@ if not db_path.exists():
     
     bb.add('system', 'config file was created')
     
-    ed.give_id_data(CONFIG_NAME, 'config', {'prefix': '>', 'balance': 0, 'inc_balance': 500, 'currency': '$', 'bank_balance': 0, 'bank_limit': 200, 'inc_ad': 1, 'inc_building': 1, 'skill_hack': 1, 'skill_protect': 1, 'business_price': 1000, 'ad_price': 350, 'building_price': 1000, 'inc_stocks': 0, 'inc_workers': 0, 'inc_max_stocks': 20, 'inc_stock_percent': 2, 'inc_max_workers': 25, 'max_bonus': 400, 'bot_id': '998256502940905542', 'world_money': 10000000000000})
+    ed.give_id_data(CONFIG_NAME, 'config', {'prefix': '>', 'balance': 0, 'inc_balance': 500, 'currency': '$', 'bank_balance': 0, 'bank_limit': 200, 'inc_ad': 1, 'inc_building': 1, 'skill_hack': 1, 'skill_protect': 1, 'business_price': 1000, 'ad_price': 350, 'building_price': 1000, 'inc_stocks': 0, 'inc_workers': 0, 'inc_max_stocks': 20, 'inc_stock_percent': 2, 'inc_max_workers': 25, 'max_bonus': 400, 'bot_id': '998256502940905542', 'world_money': 10000000000000, 'token': None})
 
 config = ed.get_id_data(CONFIG_NAME, 'config')
 
@@ -1168,4 +1168,4 @@ async def on_message(message):
             except:
                 bb.add('system', f'business salary payment error')
             
-client.run("OTk4MjU2NTAyOTQwOTA1NTQy.GMbFaw.OXPEQs0-zFZ6ahWXu3nlrW3WX-Xi1yzcRDLXkg", bot=True) #запускаем бота
+client.run(config['token'], bot=True) #запускаем бота
